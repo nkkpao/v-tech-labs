@@ -1,0 +1,30 @@
+stages:
+  - build
+  - push
+  - cleanup
+
+variables:
+  IMAGE_NAME: "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG"
+
+build:
+  stage: build
+  script:
+    - docker build -t $IMAGE_NAME .
+  only:
+    - tags
+    - branches
+
+push:
+  stage: push
+  script:
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
+    - docker push $IMAGE_NAME
+  only:
+    - tags
+    - branches
+
+cleanup:
+  stage: cleanup
+  script:
+    - docker rmi $IMAGE_NAME || true
+  when: always
