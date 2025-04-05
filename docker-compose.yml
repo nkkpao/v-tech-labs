@@ -1,73 +1,36 @@
-version: '3.8'
+version: '3'
 
 services:
-  app:
-    image: registry.csc.sibsutis.ru/my-http-server:latest
-    container_name: my-http-server
-    environment:
-      - DB_USER=${DB_USER}
-      - DB_HOST=${DB_HOST}
-      - DB_NAME=${DB_NAME}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_PORT=${DB_PORT}
-      - PORT=${PORT}
+  biliboba:
+    image: registry.csc.sibsutis.ru/is141s14/v-tech-labs:latest
+    container_name: biliboba
     networks:
-      - proxy
-    depends_on:
-      - db
-    restart: always
+      - app-network
+    expose:
+      - "3000"
 
-  db:
-    image: postgres:15
-    container_name: postgres_db
-    environment:
-      POSTGRES_DB: ${DB_NAME}
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-    volumes:
-      - pgdata:/var/lib/postgresql/data
+  bilibiba:
+    image: containous/whoami
+    container_name: bilibiba
     networks:
-      - proxy
-    restart: always
-
-  whoami:
-    image: traefik/whoami
-    container_name: whoami
-    networks:
-      - proxy
-    restart: always
-
-  traefik:
-    image: traefik:v2.9
-    container_name: traefik
-    command:
-      - "--api.dashboard=true"
-      - "--providers.docker=true"
-      - "--entrypoints.websecure.address=:443"
-      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
-      - "--certificatesresolvers.myresolver.acme.email=myemail@example.com"
-      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
-    ports:
-      - "443:443"
-    volumes:
-      - "/var/run/docker.sock:/var/run/docker.sock:ro"
-      - "./acme.json:/letsencrypt/acme.json"
-    networks:
-      - proxy
-    restart: always
+      - app-network
+    expose:
+      - "80"
 
   nginx:
     image: nginx:latest
-    container_name: nginx
+    ports:
+      - "3000:80"
+      - "443:443"
     volumes:
-      - ./conf.d/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/ssl:/etc/nginx/ssl
     networks:
-      - proxy
-    restart: always
+      - app-network
+    depends_on:
+      - biliboba
+      - bilibiba
 
 networks:
-  proxy:
+  app-network:
     driver: bridge
-
-volumes:
-  pgdata:

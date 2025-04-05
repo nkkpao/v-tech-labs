@@ -1,30 +1,22 @@
-stages:
-  - build
-  - push
-  - cleanup
+image: docker:latest
+
+services:
+  - docker:dind
 
 variables:
-  IMAGE_NAME: "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG"
+  IMAGE_NAME: registry.csc.sibsutis.ru/is141s14/v-tech-labs
+
+before_script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
 
 build:
-  stage: build
   script:
-    - docker build -t $IMAGE_NAME .
-  only:
-    - tags
-    - branches
-
-push:
-  stage: push
-  script:
-    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin $CI_REGISTRY
-    - docker push $IMAGE_NAME
-  only:
-    - tags
-    - branches
-
-cleanup:
-  stage: cleanup
-  script:
-    - docker rmi $IMAGE_NAME || true
-  when: always
+    - cd ./hello-world
+    - TAG_NAME=${CI_COMMIT_TAG:-$CI_COMMIT_SHORT_SHA}
+    - docker build -t $IMAGE_NAME:$TAG_NAME .
+    - docker tag $IMAGE_NAME:$TAG_NAME $IMAGE_NAME:$TAG_NAME
+    - docker push $IMAGE_NAME:$TAG_NAME
+    - docker rmi $IMAGE_NAME:$TAG_NAME
+  rules:
+    - if: '$CI_COMMIT_TAG'
+    - when: manual
